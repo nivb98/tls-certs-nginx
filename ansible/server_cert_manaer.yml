@@ -1,0 +1,13 @@
+---
+- hosts: localhost
+  become: yes
+  connection: local
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  
+  roles:
+    - role: generate_ca_signed_cert
+      vars:
+        secret_ca_passphrase: 1234niv
+        ca_common_name: cybermdx.local

@@ -1,0 +1,2 @@
+# aliases
+localhost ansible_connection=local

@@ -1,0 +1,86 @@
+---
+- name: Make sure that etc/certs exists 
+  file: 
+     state: directory
+     path: "/etc/certs"
+- name: Create private key for CA certificate
+  community.crypto.openssl_privatekey:
+    path: /etc/certs/ca-certificate.key
+  register: ca_key
+
+- name: Create certificate signing requ est (CSR) for CA certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ ca_key.filename }}"
+    common_name: cyber.local
+    basic_constraints:
+      - 'CA:TRUE'
+    basic_constraints_critical: yes
+    key_usage:
+      - keyCertSign
+    key_usage_critical: true
+  register: ca_csr
+
+- name: Create self-signed CA certificate from CSR
+  community.crypto.x509_certificate:
+    path: /etc/certs/ca-certificate.crt
+    csr_content: "{{ ca_csr.csr }}"
+    privatekey_path: "{{ ca_key.filename }}"
+    provider: selfsigned
+  register: ca_crt
+
+- name: Create private key for server
+  community.crypto.openssl_privatekey:
+    path: /etc/certs/server.key
+  register: host_key
+
+- name: Create server certificate signing request (CSR) for new certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ host_key.filename }}"
+    common_name: server.cyber.local
+  register: host_csr
+
+- name: Sign server certificate with our CA
+  community.crypto.x509_certificate_pipe:
+    csr_content: "{{ host_csr.csr }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+    ownca_not_after: +365d  # valid for one year
+    ownca_not_before: "-1d"  # valid since yesterday
+  register: certificate
+
+- name: Write server certificate file on server
+  copy:
+    dest: /etc/certs/server-certificate.crt
+    content: "{{ certificate.certificate }}"
+
+- name: Create private key for client
+  community.crypto.openssl_privatekey:
+    path: /etc/certs/client.key
+  register: client_key
+
+- name: Create client certificate signing request (CSR) for new certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ client_key.filename }}"
+    common_name: client.cyber.local
+    key_usage:
+      - digitalSignature
+      - keyEncipherment
+    extended_key_usage:
+    - clientAuth
+  register: client_csr
+
+- name: Sign client certificate with our CA
+  community.crypto.x509_certificate_pipe:
+    csr_content: "{{ client_csr.csr }}"
+    provider: ownca
+    ownca_path: "{{ ca_crt.filename }}"
+    ownca_privatekey_path: "{{ ca_key.filename }}"
+    ownca_not_after: +365d 
+    ownca_not_before: "-1d"
+  register: clientcertificate
+
+- name: Write client certificate file on server
+  copy:
+    dest: /etc/certs/client-certificate.crt
+    content: "{{ clientcertificate.certificate }}"
