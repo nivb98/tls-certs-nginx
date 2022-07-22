@@ -3,6 +3,7 @@
   file: 
      state: directory
      path: "/etc/certs"
+     
 - name: Create private key for CA certificate
   community.crypto.openssl_privatekey:
     path: /etc/certs/ca-certificate.key
