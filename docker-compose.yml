@@ -10,7 +10,9 @@ services:
       depends_on:
       - webserver
     webserver:
-        image: webapp
-        command: -listen=:8000 -text=hello 
-        ports:
-          - '127.0.0.1:8000:8000'
+      build:
+        dockerfile: Dockerfile
+        context: ./http-echo
+      command: -listen=:8000 -text=hello 
+      ports:
+        - '127.0.0.1:8000:8000'
