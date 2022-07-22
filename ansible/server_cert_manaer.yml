@@ -8,6 +8,3 @@
   
   roles:
     - role: generate_ca_signed_cert
-      vars:
-        secret_ca_passphrase: 1234niv
-        ca_common_name: cybermdx.local
